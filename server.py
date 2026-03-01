@@ -16,6 +16,9 @@ mcp = FastMCP(
     host="0.0.0.0",
     # When mounted at /mcp, expose MCP directly at /mcp/ (not /mcp/mcp).
     streamable_http_path="/",
+    # Better compatibility with managed MCP clients/proxies.
+    json_response=True,
+    stateless_http=True,
 )
 mcp_app = mcp.streamable_http_app()
 _mcp_lifespan = getattr(mcp_app, "lifespan", None)
