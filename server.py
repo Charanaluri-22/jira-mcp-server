@@ -17,6 +17,9 @@ mcp = FastMCP(
     streamable_http_path="/",
 )
 mcp_app = mcp.streamable_http_app()
+_mcp_lifespan = getattr(mcp_app, "lifespan", None)
+if _mcp_lifespan is None and hasattr(mcp_app, "router"):
+    _mcp_lifespan = getattr(mcp_app.router, "lifespan_context", None)
 
 
 @mcp.tool(
@@ -47,7 +50,7 @@ def acknowledge_tool(issue_key: str) -> dict:
     return acknowledge_and_move_to_inprogress(issue_key)
 
 
-app = FastAPI(title="Jira MCP Server", lifespan=mcp_app.lifespan)
+app = FastAPI(title="Jira MCP Server", lifespan=_mcp_lifespan)
 app.mount("/mcp", mcp_app)
 
 
