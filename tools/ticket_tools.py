@@ -27,10 +27,6 @@ def get_ticket_details(issue_key: str):
     """Get full structured ticket details + print raw JSON"""
     ticket = get_ticket(issue_key)
 
-    print("\n========== FULL TICKET JSON ==========")
-    print(json.dumps(ticket, indent=2))
-    print("======================================\n")
-
     fields = ticket.get("fields", {})
 
     return {
@@ -70,7 +66,6 @@ def find_progress_transition(transitions):
         if any(k in name for k in priority_keywords) or any(
             k in to_status for k in priority_keywords
         ):
-            print(f"SMART MATCH FOUND: {t['name']} -> {t['id']} -> {t['to']['name']}")
             return t["id"]
 
     return None
