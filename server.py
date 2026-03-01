@@ -16,6 +16,7 @@ mcp = FastMCP(
     # When mounted at /mcp, expose MCP directly at /mcp/ (not /mcp/mcp).
     streamable_http_path="/",
 )
+mcp_app = mcp.streamable_http_app()
 
 
 @mcp.tool(
@@ -46,8 +47,8 @@ def acknowledge_tool(issue_key: str) -> dict:
     return acknowledge_and_move_to_inprogress(issue_key)
 
 
-app = FastAPI(title="Jira MCP Server")
-app.mount("/mcp", mcp.streamable_http_app())
+app = FastAPI(title="Jira MCP Server", lifespan=mcp_app.lifespan)
+app.mount("/mcp", mcp_app)
 
 
 @app.get("/")
