@@ -13,6 +13,7 @@ from tools.ticket_tools import (
 
 mcp = FastMCP(
     "jira-mcp-server",
+    host="0.0.0.0",
     # When mounted at /mcp, expose MCP directly at /mcp/ (not /mcp/mcp).
     streamable_http_path="/",
 )
