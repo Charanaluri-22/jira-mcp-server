@@ -1,15 +1,20 @@
 import json
+import logging
 import os
 
 import uvicorn
 from fastapi import FastAPI, Request
 from mcp.server.fastmcp import FastMCP
 
+from logging_config import setup_logging
 from tools.ticket_tools import (
     acknowledge_and_move_to_inprogress,
     add_ticket_comment,
     get_ticket_details,
 )
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 mcp = FastMCP(
     "jira-mcp-server",
@@ -97,18 +102,17 @@ async def jira_webhook(request: Request) -> dict:
     Jira webhook listener for new issue events.
     """
     payload = await request.json()
-
-    print("\n===== JIRA WEBHOOK RECEIVED =====")
-    print(json.dumps(payload, indent=2))
-    print("=================================\n")
+    logger.info("Jira webhook received")
+    logger.debug("Jira webhook payload: %s", json.dumps(payload, indent=2))
 
     issue = payload.get("issue", {})
     issue_key = issue.get("key")
 
     if not issue_key:
+        logger.warning("Ignored Jira webhook with no issue key")
         return {"status": "ignored", "reason": "No issue key found"}
 
-    print(f"New Ticket Created: {issue_key}")
+    logger.info("New Jira ticket created: %s", issue_key)
     result = acknowledge_and_move_to_inprogress(issue_key)
 
     return {

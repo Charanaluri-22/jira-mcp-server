@@ -1,9 +1,13 @@
 import os
-import json
+import logging
 import requests
 from dotenv import load_dotenv
 
+from logging_config import setup_logging
+
 load_dotenv()
+setup_logging()
+logger = logging.getLogger(__name__)
 
 JIRA_EMAIL = os.getenv("JIRA_EMAIL")
 JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
@@ -23,8 +27,8 @@ def get_ticket(issue_key: str):
         "fields": "summary,description,status,priority,assignee,reporter,issuetype,labels,components,created,updated"
     }
     response = requests.get(url, headers=headers, auth=auth, params=params)
-    print("GET TICKET STATUS:", response.status_code)
-    print("RAW RESPONSE:", response.text)
+    logger.info("GET ticket %s -> %s", issue_key, response.status_code)
+    logger.debug("GET ticket response body: %s", response.text)
     return response.json()
 
 def add_comment(issue_key: str, comment: str):
@@ -45,16 +49,16 @@ def add_comment(issue_key: str, comment: str):
 
 
     response = requests.post(url, json=payload, headers=headers, auth=auth)
-    print("ADD COMMENT STATUS:", response.status_code)
-    print("COMMENT RESPONSE:", response.text)
+    logger.info("Add comment %s -> %s", issue_key, response.status_code)
+    logger.debug("Add comment response body: %s", response.text)
     return response.json()
 
 
 def get_transitions(issue_key: str):
     url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/transitions"
     response = requests.get(url, headers=headers, auth=auth)
-    print("TRANSITIONS STATUS:", response.status_code)
-    print("TRANSITIONS:", response.text)
+    logger.info("Get transitions %s -> %s", issue_key, response.status_code)
+    logger.debug("Transitions response body: %s", response.text)
     return response.json()
 
 
@@ -66,6 +70,11 @@ def transition_issue(issue_key: str, transition_id: str):
         }
     }
     response = requests.post(url, json=payload, headers=headers, auth=auth)
-    print("TRANSITION STATUS:", response.status_code)
-    print("TRANSITION RESPONSE:", response.text)
+    logger.info(
+        "Transition issue %s with transition %s -> %s",
+        issue_key,
+        transition_id,
+        response.status_code,
+    )
+    logger.debug("Transition response body: %s", response.text)
     return response.status_code
