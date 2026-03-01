@@ -1,68 +1,49 @@
-from fastapi import FastAPI,Request
-import json
-from models import TicketRequest, CommentRequest
+from fastapi import FastAPI, Request, HTTPException
 from tools.ticket_tools import (
     get_ticket_details,
     acknowledge_and_move_to_inprogress,
     add_ticket_comment
 )
 
-app = FastAPI(title="Jira MCP Server")
+app = FastAPI(title="Jira MCP Remote Server")
 
 
+# Health check
 @app.get("/")
 def root():
-    return {"message": "Jira MCP Server is running"}
+    return {"status": "Jira MCP Server Running"}
 
 
-# TOOL 1: Get full ticket details
-@app.post("/tools/get_ticket")
-def get_ticket_tool(request: TicketRequest):
-    return get_ticket_details(request.issue_key)
+# Single MCP execution endpoint
+@app.post("/execute")
+async def execute(request: Request):
+    try:
+        body = await request.json()
+        print("INCOMING REQUEST:", body)
 
+        tool_name = body.get("tool")
+        parameters = body.get("parameters", {})
 
-# TOOL 2: Add comment
-@app.post("/tools/add_comment")
-def add_comment_tool(request: CommentRequest):
-    response = add_ticket_comment(request.issue_key, request.comment)
-    return {
-        "message": "Comment added successfully",
-        "jira_response": response
-    }
+        if not tool_name:
+            return {"error": "No tool provided"}
 
+        if tool_name == "get_ticket":
+            return get_ticket_details(parameters.get("issue_key"))
 
-# TOOL 3: Acknowledge + Move Open → In Progress
-@app.post("/tools/acknowledge")
-def acknowledge_tool(request: TicketRequest):
-    return acknowledge_and_move_to_inprogress(request.issue_key)
+        elif tool_name == "add_comment":
+            return add_ticket_comment(
+                parameters.get("issue_key"),
+                parameters.get("comment")
+            )
 
-@app.post("/webhook/jira")
-async def jira_webhook(request: Request):
-    """
-    Jira webhook listener:
-    Triggered when a ticket is created
-    """
+        elif tool_name == "acknowledge_ticket":
+            return acknowledge_and_move_to_inprogress(
+                parameters.get("issue_key")
+            )
 
-    payload = await request.json()
+        else:
+            return {"error": f"Unknown tool: {tool_name}"}
 
-    print("\n===== JIRA WEBHOOK RECEIVED =====")
-    print(json.dumps(payload, indent=2))
-    print("=================================\n")
-
-    # Extract issue key safely
-    issue = payload.get("issue", {})
-    issue_key = issue.get("key")
-
-    if not issue_key:
-        return {"status": "ignored", "reason": "No issue key found"}
-
-    print(f"New Ticket Created: {issue_key}")
-
-    # Call your existing MCP tool
-    result = acknowledge_and_move_to_inprogress(issue_key)
-
-    return {
-        "status": "processed",
-        "issue_key": issue_key,
-        "acknowledgement_result": result
-    }
+    except Exception as e:
+        print("SERVER ERROR:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
