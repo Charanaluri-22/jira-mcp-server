@@ -98,11 +98,9 @@ def acknowledge_and_move_to_inprogress(issue_key: str):
         }
 
     # Step 3: Add acknowledgment comment
-    comment_text = json.loads(os.getenv("ACKNOWLEDGEMENT_MESSAGE_JSON"))
+    comment_payload = json.loads(os.getenv("ACKNOWLEDGEMENT_MESSAGE_JSON"))
+    comment_text = comment_payload.get("body")
     comment_response = add_comment(issue_key, comment_text)
-
-    print("COMMENT RESPONSE:", comment_response)
-
     # Step 4: Get available transitions
     transitions_data = get_transitions(issue_key)
     transitions = transitions_data.get("transitions", [])
