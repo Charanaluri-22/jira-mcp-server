@@ -30,7 +30,6 @@ def get_ticket(issue_key: str):
     response = requests.get(url, headers=headers, auth=auth, params=params)
     logger.info("GET ticket %s -> %s", issue_key, response.status_code)
     logger.debug("GET ticket response body: %s", response.text)
-    print(json.dumps(response.json(), indent=2))  # Print raw JSON for debugging
     return response.json()
 
 def add_comment(issue_key: str, comment: str):
