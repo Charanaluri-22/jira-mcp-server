@@ -2,6 +2,7 @@ import os
 import logging
 import requests
 from dotenv import load_dotenv
+import json
 
 from logging_config import setup_logging
 
@@ -24,11 +25,12 @@ headers = {
 def get_ticket(issue_key: str):
     url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}"
     params = {
-        "fields": "summary,description,status,priority,assignee,reporter,issuetype,labels,components,created,updated"
+        "fields": "summary,description,status,priority,assignee,reporter,issuetype,labels,components,created,updated,Impacted Application"
     }
     response = requests.get(url, headers=headers, auth=auth, params=params)
     logger.info("GET ticket %s -> %s", issue_key, response.status_code)
     logger.debug("GET ticket response body: %s", response.text)
+    print(json.dumps(response.json(), indent=2))  # Print raw JSON for debugging
     return response.json()
 
 def add_comment(issue_key: str, comment: str):
@@ -78,3 +80,16 @@ def transition_issue(issue_key: str, transition_id: str):
     )
     logger.debug("Transition response body: %s", response.text)
     return response.status_code
+
+
+def search_tickets(jql: str, max_results: int = 50):
+    url = f"{JIRA_BASE_URL}/rest/api/3/search/jql"
+    params = {
+        "jql": jql,
+        "maxResults": max_results,
+        "fields": "summary,status,priority,assignee,created,updated",
+    }
+    response = requests.get(url, headers=headers, auth=auth, params=params)
+    logger.info("Search tickets with JQL '%s' -> %s", jql, response.status_code)
+    logger.debug("Search tickets response body: %s", response.text)
+    return response.json()

@@ -10,6 +10,7 @@ from logging_config import setup_logging
 from tools.ticket_tools import (
     acknowledge_and_move_to_inprogress,
     add_ticket_comment,
+    get_open_tickets,
     get_ticket_details,
 )
 
@@ -59,6 +60,14 @@ def acknowledge_tool(issue_key: str) -> dict:
     return acknowledge_and_move_to_inprogress(issue_key)
 
 
+@mcp.tool(
+    name="get_open_tickets",
+    description="Get all Jira tickets currently in Open status.",
+)
+def get_open_tickets_tool(max_results: int = 50, project_key: str = None) -> dict:
+    return get_open_tickets(max_results=max_results, project_key=project_key)
+
+
 app = FastAPI(title="Jira MCP Server", lifespan=_mcp_lifespan)
 app.mount("/mcp", mcp_app)
 
@@ -68,7 +77,7 @@ def root() -> dict:
     return {
         "message": "Jira MCP Server is running",
         "mcp_endpoint": "/mcp",
-        "tools": ["get_ticket", "add_comment", "acknowledge"],
+        "tools": ["get_ticket", "add_comment", "acknowledge", "get_open_tickets"],
     }
 
 
@@ -92,6 +101,12 @@ async def execute(request: Request) -> dict:
 
     if tool_name in {"acknowledge", "acknowledge_ticket"}:
         return acknowledge_tool(parameters.get("issue_key"))
+
+    if tool_name == "get_open_tickets":
+        return get_open_tickets_tool(
+            parameters.get("max_results", 50),
+            parameters.get("project_key"),
+        )
 
     return {"error": f"Unknown tool: {tool_name}"}
 

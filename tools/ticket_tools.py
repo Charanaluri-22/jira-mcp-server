@@ -1,9 +1,11 @@
 import json
+import os
 from jira_client import (
     get_ticket,
     add_comment,
     get_transitions,
-    transition_issue
+    transition_issue,
+    search_tickets,
 )
 
 
@@ -96,7 +98,7 @@ def acknowledge_and_move_to_inprogress(issue_key: str):
         }
 
     # Step 3: Add acknowledgment comment
-    comment_text = "Ticket acknowledged by MCP Server. Investigation started."
+    comment_text = json.loads(os.getenv("ACKNOWLEDGEMENT_MESSAGE_JSON"))
     comment_response = add_comment(issue_key, comment_text)
 
     print("COMMENT RESPONSE:", comment_response)
@@ -145,3 +147,42 @@ def add_ticket_comment(issue_key: str, comment: str):
     response = add_comment(issue_key, comment)
     print("ADD COMMENT RESPONSE:", response)
     return response
+
+
+def get_open_tickets(max_results: int = 50, project_key: str = None):
+    """
+    Get tickets that are currently in Open status.
+    Optional project key narrows the search to one project.
+    """
+    jql = 'project = "Quantum" AND status = "Open" ORDER BY created DESC'
+
+    data = search_tickets(jql=jql, max_results=max_results)
+    issues = data.get("issues", [])
+
+    formatted_issues = []
+    for issue in issues:
+        fields = issue.get("fields", {})
+        formatted_issues.append(
+            {
+                "key": issue.get("key"),
+                "summary": fields.get("summary"),
+                "status": fields.get("status", {}).get("name"),
+                "priority": fields.get("priority", {}).get("name"),
+                "assignee": (
+                    fields.get("assignee", {}).get("displayName")
+                    if fields.get("assignee")
+                    else None
+                ),
+                "created": fields.get("created"),
+                "updated": fields.get("updated"),
+            }
+        )
+        open_tickets = []
+        for issue in formatted_issues:
+            open_tickets.append(issue.get("key"))
+
+    return {
+        "count": len(formatted_issues),
+        "total": data.get("total", len(formatted_issues)),
+        "tickets": open_tickets,
+    }
